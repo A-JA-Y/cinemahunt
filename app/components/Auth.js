@@ -9,13 +9,14 @@ import {
   onAuthStateChanged
 } from "firebase/auth";
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [user, setUser] = useState(null);
   const [error, setError] = useState(null);
-  const [showLoginForm, setShowLoginForm] = useState(false); // New state to toggle UI
+  const [showLoginForm, setShowLoginForm] = useState(false);
 
   const [mood, setMood] = useState('Happy');
   const [suggestion, setSuggestion] = useState(null);
@@ -82,23 +83,38 @@ export default function Auth() {
     return (
       <div className="text-center mt-4 flex items-center justify-center gap-4">
         <p>Welcome, {user.email}</p>
-        <Link href="/recomendations" className="text-purple-400 hover:underline">My Liked Movies</Link>
-        <button onClick={handleLogout} className="px-4 py-2 bg-red-600 rounded">Logout</button>
+        <Link href="/recomendations" className="text-purple-400 hover:underline">
+          My Liked Movies
+        </Link>
+        <button onClick={handleLogout} className="px-4 py-2 bg-red-600 rounded">
+          Logout
+        </button>
       </div>
     );
   }
 
-  // If the user wants to log in, show the form
   if (showLoginForm) {
     return (
       <div className="w-full max-w-xs mx-auto mt-8">
         <form className="bg-gray-800 shadow-md rounded px-8 pt-6 pb-8 mb-4">
           <h2 className="text-2xl text-center font-bold mb-6">Login / Sign Up</h2>
           <div className="mb-4">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full px-3 py-2 bg-gray-700 rounded"/>
+            <input 
+              type="email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              placeholder="Email" 
+              className="w-full px-3 py-2 bg-gray-700 rounded"
+            />
           </div>
           <div className="mb-6">
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full px-3 py-2 bg-gray-700 rounded"/>
+            <input 
+              type="password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              placeholder="Password" 
+              className="w-full px-3 py-2 bg-gray-700 rounded"
+            />
           </div>
           {error && <p className="text-red-500 text-xs mb-4">{error}</p>}
           <div className="flex items-center justify-between">
@@ -106,24 +122,36 @@ export default function Auth() {
             <button onClick={handleSignUp} className="px-4 py-2 bg-green-600 rounded">Sign Up</button>
           </div>
         </form>
-        <button onClick={() => setShowLoginForm(false)} className="text-purple-400 hover:underline">Back to Mood Selector</button>
+        <button 
+          onClick={() => setShowLoginForm(false)} 
+          className="text-purple-400 hover:underline"
+        >
+          Back to Mood Selector
+        </button>
       </div>
     );
   }
   
-  // Default view for logged-out users is the MOOD SELECTOR
   return (
     <div className="w-full max-w-md mx-auto mt-8 text-center">
-      <h2 className="text-2xl font-bold mb-4">How's your mood today?</h2>
+      <h2 className="text-2xl font-bold mb-4">How is your mood today?</h2>
       <div className="flex justify-center gap-4">
-        <select value={mood} onChange={(e) => setMood(e.target.value)} className="px-4 py-2 bg-gray-800 border rounded-lg">
+        <select 
+          value={mood} 
+          onChange={(e) => setMood(e.target.value)} 
+          className="px-4 py-2 bg-gray-800 border rounded-lg"
+        >
           <option>Happy</option>
           <option>Sad</option>
           <option>Adventurous</option>
           <option>Romantic</option>
           <option>Scared</option>
         </select>
-        <button onClick={handleMoodSuggestion} disabled={isLoadingSuggestion} className="px-6 py-2 bg-green-600 rounded-lg disabled:bg-gray-500">
+        <button 
+          onClick={handleMoodSuggestion} 
+          disabled={isLoadingSuggestion} 
+          className="px-6 py-2 bg-green-600 rounded-lg disabled:bg-gray-500"
+        >
           {isLoadingSuggestion ? 'Thinking...' : 'Get Suggestion'}
         </button>
       </div>
@@ -131,12 +159,27 @@ export default function Auth() {
       {suggestion && (
         <div className="mt-8 p-4 bg-gray-800 rounded-lg inline-block">
           <h3 className="font-bold text-xl mb-2">You should watch:</h3>
-          <img src={suggestion.Poster} alt={suggestion.Title} className="mx-auto rounded-lg" />
+          <Image 
+            src={suggestion.Poster} 
+            alt={suggestion.Title} 
+            width={300} 
+            height={450} 
+            className="mx-auto rounded-lg" 
+          />
           <p className="font-bold text-lg mt-2">{suggestion.Title}</p>
           <p className="text-gray-400">{suggestion.Year}</p>
         </div>
       )}
-      <p className="mt-8">Or, <button onClick={() => setShowLoginForm(true)} className="text-purple-400 hover:underline">create an account</button> to get personal recommendations!</p>
+      <p className="mt-8">
+        Or,{" "}
+        <button 
+          onClick={() => setShowLoginForm(true)} 
+          className="text-purple-400 hover:underline"
+        >
+          create an account
+        </button>{" "}
+        to get personal recommendations!
+      </p>
     </div>
   );
 }
