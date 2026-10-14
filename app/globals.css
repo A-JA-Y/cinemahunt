@@ -1,26 +1,1359 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================================
+   CinemaHunt — design tokens
+   Editorial, projector-lit, hairline-ruled. Deliberately no card surfaces:
+   structure comes from type scale, rules and negative space instead of boxes.
+   ========================================================================= */
+
+@theme {
+  /* Colour tokens are SEMANTIC, not literal: `ink` is the page surface and `bone`
+     is the foreground on top of it, so in light mode ink is pale and bone is dark.
+     Keeping the names stable is what lets every component theme for free.
+
+     Values here are the dark defaults; the theme blocks below override them. */
+  --color-ink: #07070a;
+  --color-ink-raised: #0d0d13;
+  --color-ink-sunken: #040406;
+
+  --color-bone: #f5f2ea;
+  --color-ash: #9a978f;
+  --color-ash-dim: #5d5b57;
+
+  /* Accents: one hot, one cold. Ember carries action, ice carries data. */
+  --color-ember: #ff4d1c;
+  --color-ember-dim: #7a2510;
+  --color-ice: #a7e8f0;
+  --color-ice-dim: #2d5560;
+
+  --color-hairline: rgba(245, 242, 234, 0.12);
+  --color-hairline-strong: rgba(245, 242, 234, 0.28);
+
+  /* Each var() carries its own fallback: if a next/font variable is missing for
+     any reason, only that one entry degrades instead of the whole declaration
+     becoming invalid at computed-value time. */
+  --font-display: var(--font-instrument, ui-serif), Georgia, serif;
+  --font-sans: var(--font-geist-sans, ui-sans-serif), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono, ui-monospace), monospace;
+
+  /* Fluid type scale. Ratio ~1.28 at the small end, ~1.4 at the display end. */
+  --text-micro: clamp(0.625rem, 0.6rem + 0.1vw, 0.6875rem);
+  --text-fine: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
+  --text-body: clamp(0.9375rem, 0.9rem + 0.25vw, 1.0625rem);
+  --text-lead: clamp(1.125rem, 1rem + 0.7vw, 1.5rem);
+  --text-title: clamp(1.75rem, 1.3rem + 2.2vw, 3.25rem);
+  --text-display: clamp(2.75rem, 1.4rem + 6vw, 7rem);
+  --text-colossal: clamp(3.5rem, 0.5rem + 13vw, 14rem);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quint: cubic-bezier(0.83, 0, 0.17, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ============================================================================
+   Themes
+   Three, set by data-theme on <html>: dark (default), light, and amoled.
+
+   amoled is not "dark, but darker" — on an OLED panel a true-black pixel is
+   switched off, so it saves power and renders infinite contrast, but it also
+   makes near-black UI chrome and dark grain visibly float. So amoled gets #000
+   surfaces, brighter accents to survive against them, and stronger hairlines.
+
+   Tailwind emits `var(--color-x)` for every utility, so redefining the tokens
+   here re-themes every component without touching a single class name.
+   ========================================================================= */
+
+/* Dark — also the no-JS / no-preference default. */
+:root,
+:root[data-theme='dark'] {
+  --color-ink: #07070a;
+  --color-ink-raised: #0d0d13;
+  --color-ink-sunken: #040406;
+  --color-bone: #f5f2ea;
+  --color-ash: #9a978f;
+  --color-ash-dim: #5d5b57;
+  --color-ember: #ff4d1c;
+  --color-ember-dim: #7a2510;
+  --color-ice: #a7e8f0;
+  --color-ice-dim: #2d5560;
+  --color-hairline: rgba(245, 242, 234, 0.12);
+  --color-hairline-strong: rgba(245, 242, 234, 0.28);
+
+  --ch-ember-fg: #fff;
+  --ch-grain-blend: screen;
+  --ch-grain-opacity: 0.045;
+  --ch-vignette: rgba(0, 0, 0, 0.72);
+  --ch-scrim: 0, 0, 0;
+  --ch-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239a978f' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root[data-theme='amoled'] {
+  --color-ink: #000000;
+  --color-ink-raised: #09090c;
+  --color-ink-sunken: #000000;
+  /* Pure white: at true black there is no veiling glare to soften it. */
+  --color-bone: #ffffff;
+  --color-ash: #b4b1a9;
+  --color-ash-dim: #6e6b66;
+  --color-ember: #ff5f2e;
+  --color-ember-dim: #8a2a12;
+  --color-ice: #b8eef5;
+  --color-ice-dim: #35626e;
+  --color-hairline: rgba(255, 255, 255, 0.15);
+  --color-hairline-strong: rgba(255, 255, 255, 0.34);
+
+  --ch-ember-fg: #0a0400;
+  --ch-grain-blend: screen;
+  /* Grain is the one thing true black cannot hide — halve it. */
+  --ch-grain-opacity: 0.022;
+  --ch-vignette: rgba(0, 0, 0, 0.9);
+  --ch-scrim: 0, 0, 0;
+  --ch-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23b4b1a9' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+:root[data-theme='light'] {
+  --color-ink: #f4f1ea;
+  --color-ink-raised: #fffdf8;
+  --color-ink-sunken: #e7e3d9;
+  --color-bone: #121210;
+  --color-ash: #56534e;
+  --color-ash-dim: #8b8880;
+  /* Darker than the dark-mode ember so white button text clears 4.5:1 and the
+     colour still passes against the pale surface. */
+  --color-ember: #b83200;
+  --color-ember-dim: #e8d2c8;
+  --color-ice: #0e6072;
+  --color-ice-dim: #cfe6ea;
+  --color-hairline: rgba(18, 18, 16, 0.14);
+  --color-hairline-strong: rgba(18, 18, 16, 0.32);
+
+  --ch-ember-fg: #fff;
+  /* screen would erase the grain on a pale surface. */
+  --ch-grain-blend: multiply;
+  --ch-grain-opacity: 0.03;
+  --ch-vignette: rgba(94, 86, 70, 0.16);
+  --ch-scrim: 244, 241, 234;
+  --ch-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2356534e' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* Follow the OS only until the viewer picks a theme; after that data-theme wins
+   and this block no longer matches. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --color-ink: #f4f1ea;
+    --color-ink-raised: #fffdf8;
+    --color-ink-sunken: #e7e3d9;
+    --color-bone: #121210;
+    --color-ash: #56534e;
+    --color-ash-dim: #8b8880;
+    --color-ember: #b83200;
+    --color-ember-dim: #e8d2c8;
+    --color-ice: #0e6072;
+    --color-ice-dim: #cfe6ea;
+    --color-hairline: rgba(18, 18, 16, 0.14);
+    --color-hairline-strong: rgba(18, 18, 16, 0.32);
+
+    --ch-ember-fg: #fff;
+    --ch-grain-blend: multiply;
+    --ch-grain-opacity: 0.03;
+    --ch-vignette: rgba(94, 86, 70, 0.16);
+    --ch-scrim: 244, 241, 234;
+    --ch-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2356534e' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   }
 }
 
+/* ============================================================================
+   Base
+   ========================================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Lenis drives scrolling; native smooth-scroll would fight it. */
+  scroll-behavior: auto;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--color-ink);
+  /* Eases the swap between themes. Scoped to colour only so it never delays a
+     layout, and suppressed during the switch itself (see .ch-theming). */
+  transition:
+    background-color 0.45s var(--ease-out-expo),
+    color 0.45s var(--ease-out-expo);
+  color: var(--color-bone);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+::selection {
+  background: var(--color-ember);
+  color: var(--color-ink);
+}
+
+/* A single visible focus treatment everywhere, keyboard-only. */
+:focus-visible {
+  outline: 2px solid var(--color-ember);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* ============================================================================
+   Grain + vignette
+   A fixed film-grain and edge falloff over the whole page. This is what stops a
+   flat near-black background reading as "unstyled dark mode".
+   ========================================================================= */
+
+.ch-grain::before,
+.ch-grain::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+}
+
+.ch-grain::before {
+  /* Inline fractal noise: no network request, no layout cost. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+  opacity: var(--ch-grain-opacity, 0.045);
+  mix-blend-mode: var(--ch-grain-blend, screen);
+  animation: ch-grain-drift 700ms steps(3) infinite;
+}
+
+.ch-grain::after {
+  background: radial-gradient(130% 100% at 50% 0%, transparent 42%, var(--ch-vignette, rgba(0, 0, 0, 0.72)) 100%);
+  opacity: 0.85;
+}
+
+@keyframes ch-grain-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  33% {
+    transform: translate3d(-2%, 1%, 0);
+  }
+  66% {
+    transform: translate3d(1%, -2%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ============================================================================
+   Reveal primitives
+   GSAP animates these. The hidden start state is scoped to .motion-ready, which
+   the scroll provider adds only once it has mounted — so with JS broken, blocked
+   or still loading, every word on the page is visible and readable.
+   ========================================================================= */
+
+.motion-ready [data-reveal] {
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+.motion-ready [data-reveal='up'] {
+  transform: translate3d(0, 2.2rem, 0);
+}
+
+.motion-ready [data-reveal='fade'] {
+  transform: none;
+}
+
+.motion-ready [data-reveal='scale'] {
+  transform: scale(1.06);
+}
+
+.motion-ready [data-reveal='left'] {
+  transform: translate3d(-2.2rem, 0, 0);
+}
+
+.motion-ready [data-reveal='right'] {
+  transform: translate3d(2.2rem, 0, 0);
+}
+
+.motion-ready [data-reveal='clip'] {
+  opacity: 1;
+  clip-path: inset(0 0 100% 0);
+}
+
+/* Per-line masked rise, used for display headings. */
+.ch-line {
+  display: block;
+  overflow: hidden;
+}
+
+.ch-line > span {
+  display: block;
+}
+
+.motion-ready .ch-line > span {
+  transform: translate3d(0, 110%, 0);
+  will-change: transform;
+}
+
+/* ============================================================================
+   Type utilities
+   ========================================================================= */
+
+.ch-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-display);
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+}
+
+.ch-colossal {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-colossal);
+  line-height: 0.84;
+  letter-spacing: -0.035em;
+}
+
+.ch-title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+}
+
+.ch-lead {
+  font-size: var(--text-lead);
+  line-height: 1.42;
+  color: color-mix(in oklab, var(--color-bone) 82%, transparent);
+  text-wrap: pretty;
+}
+
+/* Small-caps mono label — the recurring annotation voice of the whole UI. */
+.ch-tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-ash);
+}
+
+.ch-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================================
+   Structure: rules instead of cards
+   ========================================================================= */
+
+.ch-rule {
+  border: 0;
+  height: 1px;
+  background: var(--color-hairline);
+  margin: 0;
+}
+
+.ch-shell {
+  width: 100%;
+  max-width: 88rem;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 4.5rem);
+}
+
+/* Section label sitting in the left gutter, rotated on wide screens. */
+.ch-section-mark {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding-block: 0.75rem;
+  border-top: 1px solid var(--color-hairline);
+}
+
+/* ============================================================================
+   Controls
+   ========================================================================= */
+
+.ch-btn {
+  --btn-fg: var(--color-ink);
+  --btn-bg: var(--color-bone);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-size: var(--text-fine);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    background 0.4s var(--ease-out-expo),
+    color 0.4s var(--ease-out-expo),
+    transform 0.4s var(--ease-out-expo),
+    opacity 0.3s linear;
+}
+
+.ch-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.ch-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.ch-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ch-btn--ember {
+  --btn-bg: var(--color-ember);
+  --btn-fg: var(--ch-ember-fg, #fff);
+}
+
+.ch-btn--ghost {
+  --btn-bg: transparent;
+  --btn-fg: var(--color-bone);
+  border-color: var(--color-hairline-strong);
+}
+
+.ch-btn--ghost:hover:not(:disabled) {
+  --btn-bg: var(--color-bone);
+  --btn-fg: var(--color-ink);
+}
+
+/* Underline that draws in from the left — used for every inline link. */
+.ch-link {
+  position: relative;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ch-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.45s var(--ease-out-expo);
+}
+
+.ch-link:hover::after,
+.ch-link:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* Bare input: a ruled line, not a filled box. */
+.ch-field {
+  width: 100%;
+  padding: 0.85rem 0 0.85rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-hairline-strong);
+  background: transparent;
+  color: var(--color-bone);
+  font-size: var(--text-lead);
+  outline: none;
+  transition: border-color 0.4s var(--ease-out-expo);
+}
+
+.ch-field::placeholder {
+  color: var(--color-ash-dim);
+}
+
+.ch-field:focus {
+  border-color: var(--color-ember);
+}
+
+/* ============================================================================
+   Scroll progress rail
+   ========================================================================= */
+
+.ch-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--color-ember), var(--color-ice));
+  z-index: 70;
+  pointer-events: none;
+}
+
+/* ============================================================================
+   Reduced motion
+   Kill decorative motion entirely and force every reveal to its end state, so a
+   reduced-motion visitor gets the full layout with none of the movement.
+   ========================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-grain::before {
+    animation: none;
+  }
+
+  .motion-ready [data-reveal],
+  .motion-ready .ch-line > span {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Screen-reader-only text. */
+.ch-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================================
+   Component-level motion that belongs in one place
+   ========================================================================= */
+
+/* Scroll cue: a light sweeping along a hairline. */
+.ch-sweep > span {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 4rem;
+  background: linear-gradient(90deg, transparent, var(--color-ember), transparent);
+  animation: ch-sweep 3.2s var(--ease-in-out-quint) infinite;
+}
+
+@keyframes ch-sweep {
+  0% {
+    transform: translateX(-4rem);
+  }
+  100% {
+    transform: translateX(min(1400px, 100vw));
+  }
+}
+
+/* Indeterminate loading hairline, used while an AI route is thinking. */
+.ch-thinking {
+  position: relative;
+  height: 1px;
+  overflow: hidden;
+  background: var(--color-hairline);
+}
+
+.ch-thinking::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, var(--color-ember), transparent);
+  animation: ch-thinking 1.4s ease-in-out infinite;
+}
+
+@keyframes ch-thinking {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(386%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-sweep > span,
+  .ch-thinking::after {
+    animation: none;
+  }
+}
+
+/* Toast: a ruled slab, not a rounded notification bubble. */
+.ch-toast {
+  padding: 0.6rem 1.1rem;
+  border: 1px solid var(--color-hairline-strong);
+  background: color-mix(in oklab, var(--color-ink) 82%, transparent);
+  backdrop-filter: blur(14px);
+  animation: ch-toast-in 0.5s var(--ease-out-expo) both;
+}
+
+@keyframes ch-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-toast {
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   Range input
+   Styled as a hairline with a small ember knob, to match the ruled aesthetic.
+   Both vendor tracks need styling separately; they cannot be combined in one rule.
+   ========================================================================= */
+
+.ch-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 1.5rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ch-range::-webkit-slider-runnable-track {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    var(--color-ember) 0%,
+    var(--color-ember) var(--ch-range-fill, 50%),
+    var(--color-hairline-strong) var(--ch-range-fill, 50%),
+    var(--color-hairline-strong) 100%
+  );
+}
+
+.ch-range::-moz-range-track {
+  height: 1px;
+  background: var(--color-hairline-strong);
+}
+
+.ch-range::-moz-range-progress {
+  height: 1px;
+  background: var(--color-ember);
+}
+
+.ch-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-top: -0.375rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-ember);
+  transition: transform 0.3s var(--ease-out-expo);
+}
+
+.ch-range::-moz-range-thumb {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-ember);
+}
+
+.ch-range:hover::-webkit-slider-thumb,
+.ch-range:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.4);
+}
+
+/* ============================================================================
+   Top dock
+   Transparent over the hero, frosted once scrolled past it.
+   ========================================================================= */
+
+.ch-dock {
+  transition:
+    background 0.6s var(--ease-out-expo),
+    backdrop-filter 0.6s var(--ease-out-expo);
+}
+
+.ch-dock[data-past='false'] {
+  background: transparent;
+}
+
+.ch-dock[data-past='false'] .ch-rule {
+  opacity: 0;
+}
+
+.ch-dock[data-past='true'] {
+  background: color-mix(in oklab, var(--color-ink) 78%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+.ch-dock .ch-rule {
+  transition: opacity 0.6s var(--ease-out-expo);
+}
+
+/* Text that cross-fades when its key changes (vibe-meter act hand-off). */
+.ch-swap {
+  animation: ch-swap-in 0.65s var(--ease-out-expo) both;
+}
+
+@keyframes ch-swap-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-swap {
+    animation: none;
+  }
+}
+
+/* Select: a ruled control, matching .ch-field rather than a native dropdown box. */
+.ch-select {
+  appearance: none;
+  padding: 0.35rem 1.75rem 0.35rem 0.5rem;
+  border: 0;
+  border-bottom: 1px solid var(--color-hairline-strong);
+  /* The arrow is baked into a data URI and CSS cannot interpolate a colour into
+     one, so each theme block supplies the entire url() as --ch-select-arrow. */
+  background: var(--ch-select-arrow) no-repeat right 0.4rem center;
+  background-color: transparent;
+  color: var(--color-bone);
+  font-family: var(--font-mono);
+  font-size: var(--text-fine);
+  cursor: pointer;
+  transition: border-color 0.4s var(--ease-out-expo);
+}
+
+.ch-select:hover,
+.ch-select:focus {
+  border-color: var(--color-ember);
+}
+
+/* Native option lists render in the OS palette; force a dark one. */
+.ch-select option {
+  background: var(--color-ink-raised);
+  color: var(--color-bone);
+}
+
+/* ============================================================================
+   Backdrop stills
+   A film still is usually dark, which is invisible under light-mode body text.
+   Each theme sets how far the image is pushed back behind the type.
+   ========================================================================= */
+
+.ch-backdrop {
+  opacity: var(--ch-backdrop-opacity, 0.34);
+  filter: var(--ch-backdrop-filter, none);
+  transition: opacity 0.6s var(--ease-out-expo);
+}
+
+:root,
+:root[data-theme='dark'] {
+  --ch-backdrop-opacity: 0.34;
+  --ch-backdrop-filter: none;
+}
+
+:root[data-theme='amoled'] {
+  --ch-backdrop-opacity: 0.26;
+  --ch-backdrop-filter: contrast(1.1);
+}
+
+:root[data-theme='light'] {
+  /* Lift and wash it out so dark type stays legible on top. */
+  --ch-backdrop-opacity: 0.16;
+  --ch-backdrop-filter: grayscale(0.35) brightness(1.55) contrast(0.85);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --ch-backdrop-opacity: 0.16;
+    --ch-backdrop-filter: grayscale(0.35) brightness(1.55) contrast(0.85);
+  }
+}
+
+/* ============================================================================
+   Dock
+   A floating rail at the bottom. Items magnify by pointer proximity (Dock.js
+   drives transform); everything here is the surface and the resting state.
+   ========================================================================= */
+
+.ch-dock-wrap {
+  position: fixed;
+  left: 50%;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 78;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.ch-dock-wrap > * {
+  pointer-events: auto;
+}
+
+.ch-dock-rail {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--color-hairline-strong);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-ink) 72%, transparent);
+  backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--color-bone) 10%, transparent) inset,
+    0 18px 50px -12px rgb(0 0 0 / 0.5);
+}
+
+.ch-dock-item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-ash);
+  cursor: pointer;
+  /* GSAP owns scale and y; keep CSS off those so they never fight. */
+  transition: color 0.3s var(--ease-out-expo), background 0.3s var(--ease-out-expo);
+  transform-origin: bottom center;
+  text-decoration: none;
+}
+
+.ch-dock-item:hover,
+.ch-dock-item:focus-visible,
+.ch-dock-item[aria-expanded='true'] {
+  color: var(--color-bone);
+  background: color-mix(in oklab, var(--color-bone) 10%, transparent);
+}
+
+.ch-dock-icon {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.ch-dock-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Name appears above the item, only on hover — the dock stays iconographic. */
+.ch-dock-label {
+  position: absolute;
+  bottom: calc(100% + 0.6rem);
+  left: 50%;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-ink) 92%, transparent);
+  color: var(--color-bone);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 0.3rem);
+  transition:
+    opacity 0.3s var(--ease-out-expo),
+    transform 0.3s var(--ease-out-expo);
+  pointer-events: none;
+}
+
+.ch-dock-item:hover .ch-dock-label,
+.ch-dock-item:focus-visible .ch-dock-label {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.ch-dock-badge {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.1rem;
+  min-width: 1.05rem;
+  padding: 0 0.2rem;
+  border-radius: 999px;
+  background: var(--color-ember);
+  color: var(--ch-ember-fg, #fff);
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  line-height: 1.05rem;
+  text-align: center;
+}
+
+.ch-dock-sep {
+  align-self: center;
+  width: 1px;
+  height: 1.4rem;
+  margin-inline: 0.25rem;
+  background: var(--color-hairline-strong);
+}
+
+/* Theme tray ---------------------------------------------------------- */
+
+.ch-dock-tray {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.4rem;
+  border: 1px solid var(--color-hairline-strong);
+  border-radius: 1.1rem;
+  background: color-mix(in oklab, var(--color-ink) 90%, transparent);
+  backdrop-filter: blur(22px) saturate(150%);
+  box-shadow: 0 18px 50px -12px rgb(0 0 0 / 0.5);
+  animation: ch-tray-in 0.4s var(--ease-out-expo) both;
+}
+
+@keyframes ch-tray-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.96);
+  }
+}
+
+.ch-dock-tray-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-width: 11rem;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--color-ash);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.3s var(--ease-out-expo), color 0.3s var(--ease-out-expo);
+}
+
+.ch-dock-tray-item:hover {
+  background: color-mix(in oklab, var(--color-bone) 8%, transparent);
+  color: var(--color-bone);
+}
+
+.ch-dock-tray-item.is-on {
+  color: var(--color-ember);
+  background: color-mix(in oklab, var(--color-ember) 12%, transparent);
+}
+
+/* Keep the dock clear of page content at the bottom of every route. */
+.ch-dock-gutter {
+  height: 7rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-dock-tray {
+    animation: none;
+  }
+}
+
+/* Install prompt, bottom-left so it never covers the dock. */
+.ch-install {
+  position: fixed;
+  left: max(1rem, env(safe-area-inset-left));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 77;
+  max-width: 19rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--color-hairline-strong);
+  border-radius: 1rem;
+  background: color-mix(in oklab, var(--color-ink) 90%, transparent);
+  backdrop-filter: blur(20px);
+  animation: ch-toast-in 0.6s var(--ease-out-expo) both;
+}
+
+/* Below the dock's breakpoint the two would collide. */
+@media (max-width: 640px) {
+  .ch-install {
+    bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 4.75rem);
+    max-width: calc(100vw - 2rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-install {
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   Pix — the cyborg on the dock
+   Eye and head tracking are driven by GSAP in CyborgBot.js; everything here is
+   the character's look, its blink, and the speech bubble.
+   ========================================================================= */
+
+.ch-bot-row {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  /* Perches on the dock's top edge rather than floating above it. */
+  margin-bottom: -0.65rem;
+  padding-right: 0.35rem;
+}
+
+.ch-bot {
+  position: relative;
+  display: block;
+  width: 3.25rem;
+  height: 3.25rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.4s var(--ease-out-expo), filter 0.4s var(--ease-out-expo);
+  filter: drop-shadow(0 6px 14px rgb(0 0 0 / 0.45));
+}
+
+.ch-bot:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.06);
+}
+
+.ch-bot:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.ch-bot-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* --- parts ---------------------------------------------------------- */
+
+.ch-bot-shell {
+  fill: var(--color-ink-raised);
+  stroke: var(--color-hairline-strong);
+  stroke-width: 1.2;
+}
+
+.ch-bot-visor {
+  fill: color-mix(in oklab, var(--color-ink-sunken) 86%, var(--color-ice) 14%);
+}
+
+.ch-bot-stroke {
+  stroke: var(--color-hairline-strong);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.ch-bot-seam {
+  stroke: var(--color-hairline);
+  stroke-width: 1;
+}
+
+.ch-bot-plate {
+  fill: var(--color-ash-dim);
+}
+
+.ch-bot-eye-white {
+  fill: var(--color-bone);
+}
+
+.ch-bot-pupil {
+  fill: var(--color-ink);
+}
+
+/* The machine eye glows; the organic one does not. That contrast is the joke. */
+.ch-bot-pupil-cyber {
+  fill: var(--color-ember);
+}
+
+.ch-bot-ring {
+  fill: none;
+  stroke: var(--color-ember);
+  stroke-width: 1.1;
+  opacity: 0.75;
+}
+
+.ch-bot-mouth {
+  fill: var(--color-ash);
+  transform-origin: 32px 41.5px;
+}
+
+.ch-bot-led {
+  fill: var(--color-ember);
+  animation: ch-bot-led 2.4s ease-in-out infinite;
+}
+
+@keyframes ch-bot-led {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* --- blink ----------------------------------------------------------- */
+
+.ch-bot-eye {
+  transform-origin: center 29.5px;
+  transition: transform 0.08s ease-out;
+}
+
+.ch-bot[data-blink='true'] .ch-bot-eye {
+  transform: scaleY(0.12);
+}
+
+/* --- talking --------------------------------------------------------- */
+
+.ch-bot[data-busy='true'] .ch-bot-mouth {
+  animation: ch-bot-talk 0.42s ease-in-out infinite;
+}
+
+@keyframes ch-bot-talk {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(2.6);
+  }
+}
+
+/* --- unread ping ----------------------------------------------------- */
+
+.ch-bot-ping {
+  position: absolute;
+  top: 0.1rem;
+  right: 0.1rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-ice);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-ice) 70%, transparent);
+  animation: ch-bot-ping 2.6s var(--ease-out-expo) infinite;
+}
+
+@keyframes ch-bot-ping {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-ice) 70%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 0.6rem transparent;
+  }
+}
+
+/* --- speech bubble --------------------------------------------------- */
+
+.ch-bot-bubble {
+  position: relative;
+  max-width: min(22rem, calc(100vw - 2rem));
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-hairline-strong);
+  border-radius: 1rem 1rem 0.35rem 1rem;
+  background: color-mix(in oklab, var(--color-ink) 92%, transparent);
+  backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: 0 18px 50px -14px rgb(0 0 0 / 0.55);
+}
+
+/* Tail, pointing down at the bot. */
+.ch-bot-bubble::after {
+  content: '';
+  position: absolute;
+  right: 1.15rem;
+  bottom: -0.4rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-right: 1px solid var(--color-hairline-strong);
+  border-bottom: 1px solid var(--color-hairline-strong);
+  background: inherit;
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-bot-led,
+  .ch-bot-ping,
+  .ch-bot[data-busy='true'] .ch-bot-mouth {
+    animation: none;
+  }
+
+  .ch-bot-eye {
+    transition: none;
+  }
+}
+
+/* ============================================================================
+   Preloader
+   Present in the server HTML so it covers the first paint. Preloader.js counts
+   it up and wipes it away; the failsafe below retires it even if that never runs.
+   ========================================================================= */
+
+.ch-preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  background: var(--color-ink);
+  clip-path: inset(0 0 0 0);
+  /* Failsafe: with no JS at all this hides the curtain after 6s rather than
+     leaving the page permanently covered. JS normally beats it by seconds. */
+  animation: ch-preloader-failsafe 0.6s linear 6s forwards;
+}
+
+@keyframes ch-preloader-failsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+/* Hidden before paint: reduced motion, or already seen this session. */
+:root[data-preloaded='true'] .ch-preloader {
+  display: none;
+}
+
+.ch-preloader-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.ch-preloader-mark {
+  width: clamp(5rem, 11vw, 8rem);
+  height: clamp(5rem, 11vw, 8rem);
+}
+
+.ch-preloader-track {
+  fill: none;
+  stroke: var(--color-hairline);
+  stroke-width: 1.5;
+}
+
+.ch-preloader-ring {
+  fill: none;
+  stroke: var(--color-ember);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.ch-preloader-iris {
+  fill: var(--color-ember);
+  animation: ch-preloader-iris 2.6s var(--ease-in-out-quint) infinite;
+  transform-origin: 60px 60px;
+}
+
+@keyframes ch-preloader-iris {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.72);
+  }
+}
+
+.ch-preloader-blades path {
+  fill: none;
+  stroke: var(--color-bone);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+
+.ch-preloader-word {
+  margin-top: 1.75rem;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 6vw, 3.75rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.ch-preloader-word span {
+  color: var(--color-ember);
+}
+
+.ch-preloader-sub {
+  margin-top: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-ash);
+}
+
+/* Foot: label, hairline, counter. */
+.ch-preloader-foot {
+  position: absolute;
+  inset-inline: clamp(1rem, 4vw, 4.5rem);
+  bottom: clamp(1.5rem, 5vh, 3rem);
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 3vw, 2.5rem);
+}
+
+.ch-preloader-bar {
+  position: relative;
+  flex: 1;
+  height: 1px;
+  background: var(--color-hairline);
+}
+
+.ch-preloader-bar > span {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--color-ice), var(--color-ember));
+}
+
+.ch-preloader-count {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-fine);
+  color: var(--color-bone);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-preloader {
+    display: none;
+  }
 }

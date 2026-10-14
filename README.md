@@ -1,262 +1,181 @@
 # CinemaHunt 🎬
 
-**Discover your next favorite movie with AI-powered recommendations and personalized mood-based suggestions.**
+**How a film feels, before you press play.**
 
-CinemaHunt is a modern, full-stack web application that revolutionizes movie discovery through intelligent recommendations, comprehensive search capabilities, and personalized user experiences. Built with cutting-edge technologies, it combines the power of AI with real-time movie data to help users find the perfect film for any mood or occasion.
-
-## ✨ Features
-
-### 🔍 **Smart Movie Search**
-- **Comprehensive Search**: Search through an extensive movie database powered by OMDB API
-- **Rich Movie Details**: View detailed information including posters, ratings, cast, plot summaries, and more
-- **Real-time Results**: Instant search results with responsive, mobile-optimized interface
-- **Visual Discovery**: Beautiful movie poster grid with hover effects and intuitive navigation
-
-### 🤖 **AI-Powered Mood Recommendations**
-- **Mood-Based Suggestions**: Get personalized movie recommendations based on your current mood
-- **Google AI Integration**: Leverages Google's Generative AI for intelligent content curation
-- **Dynamic Mood Selection**: Choose from various moods - Happy, Sad, Adventurous, Romantic, Scared
-- **Instant AI Analysis**: Real-time processing and curated recommendations
-
-### 👤 **User Authentication & Personalization**
-- **Secure Authentication**: Firebase Auth integration with email/password signup and login
-- **Personal Movie Library**: Save and manage your favorite movies
-- **Like System**: Heart movies you love and build your personal collection
-- **User Dashboard**: Access your liked movies and personalized recommendations
-
-### 📱 **Modern User Experience**
-- **Responsive Design**: Seamless experience across desktop, tablet, and mobile devices
-- **Dark Theme**: Elegant dark interface optimized for movie browsing
-- **Smooth Animations**: Polished interactions with hover effects and transitions
-- **Accessibility**: Built with web accessibility standards in mind
-
-## 🛠️ Tech Stack
-
-### **Frontend**
-- **[Next.js 15.5.2](https://nextjs.org/)** - React framework with App Router
-- **[React 19.1.0](https://reactjs.org/)** - UI library with latest features
-- **[Tailwind CSS 4](https://tailwindcss.com/)** - Utility-first CSS framework
-- **[PostCSS](https://postcss.org/)** - CSS processing and optimization
-
-### **Backend & APIs**
-- **[Firebase Auth](https://firebase.google.com/products/auth)** - User authentication and management
-- **[Firebase Firestore](https://firebase.google.com/products/firestore)** - NoSQL document database
-- **[OMDB API](https://www.omdbapi.com/)** - Comprehensive movie database
-- **[Google Generative AI](https://ai.google.dev/)** - AI-powered content recommendations
-
-### **Development & Build Tools**
-- **[Turbopack](https://turbo.build/pack)** - Fast bundler for development and production
-- **[ESLint](https://eslint.org/)** - Code linting and quality assurance
-- **[Geist Font](https://vercel.com/font)** - Modern typography optimized for screens
-
-## 📋 Prerequisites
-
-Before setting up CinemaHunt, ensure you have the following:
-
-- **Node.js** (version 18 or higher)
-- **npm** or **yarn** package manager
-- **Firebase account** for authentication and database
-- **OMDB API key** for movie data
-- **Google AI API key** for mood-based recommendations
-
-## 🚀 Installation
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/A-JA-Y/cinemahunt.git
-cd cinemahunt
-```
-
-### 2. Install Dependencies
-```bash
-npm install
-# or
-yarn install
-```
-
-### 3. Environment Configuration
-Create a `.env.local` file in the root directory:
-
-```env
-# OMDB API Configuration
-NEXT_PUBLIC_OMDB_API_KEY=your_omdb_api_key_here
-
-# Google AI Configuration
-GOOGLE_AI_API_KEY=your_google_ai_api_key_here
-
-# Firebase Configuration (if using environment variables)
-NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-```
-
-### 4. Firebase Setup
-1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
-2. Enable **Authentication** with Email/Password provider
-3. Create a **Firestore Database**
-4. Update the Firebase configuration in `app/FireBase.js` with your project credentials
-
-### 5. API Keys Setup
-
-#### OMDB API Key:
-1. Visit [OMDB API](https://www.omdbapi.com/apikey.aspx)
-2. Sign up for a free API key
-3. Add the key to your `.env.local` file
-
-#### Google AI API Key:
-1. Go to [Google AI Studio](https://ai.google.dev/)
-2. Create a new API key
-3. Add the key to your `.env.local` file
-
-## 💻 Development
-
-### Start the Development Server
-```bash
-npm run dev
-# or
-yarn dev
-```
-
-The application will be available at [http://localhost:3000](http://localhost:3000)
-
-### Build for Production
-```bash
-npm run build
-npm run start
-```
-
-### Linting
-```bash
-npm run lint
-```
-
-## 📖 Usage
-
-### 🎯 **Getting Started**
-1. **Visit the Homepage**: Access CinemaHunt and choose to browse movies or get mood-based recommendations
-2. **Mood Selection**: Select your current mood for AI-powered movie suggestions
-3. **Create Account**: Sign up to save favorite movies and get personalized recommendations
-
-### 🔍 **Search Movies**
-1. Use the search bar to find movies by title
-2. Browse through visual results with movie posters
-3. Click on any movie to view detailed information
-4. Like movies to save them to your personal collection (requires login)
-
-### ❤️ **Personal Collections**
-1. Log in to your account
-2. Like movies to add them to your collection
-3. Visit "My Liked Movies" to view your saved films
-4. Get personalized recommendations based on your preferences
-
-### 🎭 **Mood-Based Recommendations**
-1. Select your current mood from the dropdown
-2. Click "Get Suggestion" for AI-powered recommendations
-3. Discover movies perfectly matched to your current state of mind
-
-## 📁 Project Structure
-
-```
-cinemahunt/
-├── app/                          # Next.js App Router directory
-│   ├── api/                      # API routes
-│   │   ├── mood/                 # Mood-based recommendation API
-│   │   └── vibe/                 # Additional recommendation API
-│   ├── components/               # Reusable React components
-│   │   ├── Auth.js               # Authentication component
-│   │   └── MovieSearch.js        # Movie search and display component
-│   ├── movie/[id]/              # Dynamic movie detail pages
-│   ├── recomendations/          # User's liked movies page
-│   ├── FireBase.js              # Firebase configuration
-│   ├── globals.css              # Global styles
-│   ├── layout.js                # Root layout component
-│   └── page.js                  # Homepage component
-├── public/                      # Static assets
-├── .env.local                   # Environment variables (not in repo)
-├── eslint.config.mjs           # ESLint configuration
-├── jsconfig.json               # JavaScript configuration
-├── next.config.mjs             # Next.js configuration
-├── package.json                # Dependencies and scripts
-├── postcss.config.mjs          # PostCSS configuration
-└── README.md                   # Project documentation
-```
-
-## 🔧 API Integration
-
-### Firebase Services
-- **Authentication**: User signup, login, and session management
-- **Firestore**: Storing user preferences and liked movies
-- **Security Rules**: Configured for user data protection
-
-### External APIs
-- **OMDB API**: Movie search, details, and metadata
-- **Google Generative AI**: Mood analysis and movie recommendations
-
-## 🎨 Design Philosophy
-
-CinemaHunt follows modern web design principles:
-
-- **Dark Theme**: Optimized for extended browsing sessions
-- **Mobile-First**: Responsive design for all devices
-- **Accessibility**: WCAG guidelines compliance
-- **Performance**: Optimized loading and smooth interactions
-- **User-Centric**: Intuitive navigation and clear call-to-actions
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-1. Connect your GitHub repository to Vercel
-2. Add environment variables in Vercel dashboard
-3. Deploy automatically with each push
-
-### Other Platforms
-- **Netlify**: Full Next.js support with serverless functions
-- **Railway**: Easy deployment with database integration
-- **DigitalOcean App Platform**: Scalable hosting solution
-
-## 🤝 Contributing
-
-We welcome contributions to make CinemaHunt even better!
-
-### Development Workflow
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and test thoroughly
-4. Commit with descriptive messages: `git commit -m 'Add amazing feature'`
-5. Push to your branch: `git push origin feature/amazing-feature`
-6. Open a Pull Request with detailed description
-
-### Contribution Guidelines
-- Follow the existing code style and conventions
-- Add appropriate tests for new features
-- Update documentation as needed
-- Ensure all tests pass and linting is clean
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **[OMDB API](https://www.omdbapi.com/)** for comprehensive movie data
-- **[Firebase](https://firebase.google.com/)** for backend services
-- **[Google AI](https://ai.google.dev/)** for intelligent recommendations
-- **[Next.js Team](https://nextjs.org/)** for the amazing framework
-- **[Tailwind CSS](https://tailwindcss.com/)** for utility-first styling
-
-## 📞 Support
-
-If you encounter any issues or have questions:
-
-1. Check the existing [Issues](https://github.com/A-JA-Y/cinemahunt/issues)
-2. Create a new issue with detailed information
-3. Join our community discussions
+Search any film and read its emotional shape: a vibe meter that draws itself as you
+scroll, a spoiler-free AI synopsis, real streaming availability, trailers, and a
+small cyborg who tells you things about whatever is on screen.
 
 ---
 
-**Built with ❤️ by [A-JA-Y](https://github.com/A-JA-Y)**
+## Features
 
-*CinemaHunt - Where every mood finds its perfect movie* 🎬✨
+### The vibe meter
+
+Groq reads a film and plots its emotional intensity across the runtime. The section
+pins, the curve draws in step with your scroll, a playhead rides the path, and the
+three acts take over as it crosses them — so reading the analysis and moving
+through the film's runtime are the same gesture. You can also grab the curve and
+scrub it by hand, with the pointer or the arrow keys.
+
+Alongside it: a six-axis register (tension, warmth, humour, spectacle, dread,
+heart), a one-line read on the film's feel, when to watch it, and what to drink.
+
+### Spoiler-free synopsis
+
+The setup, the themes, a specific note on the craft, and an honest list of who will
+bounce off it. The official plot — the one block that does give things away — stays
+folded behind a toggle.
+
+### Availability that is actually checked
+
+Real listings from TMDB's JustWatch feed across nine regions, kept separate by tier
+(subscription, free with ads, rent, buy). The model never invents a platform: when a
+region genuinely has no catalogue row, the fallback estimate renders under its own
+"AI estimate — not verified" heading.
+
+### Trailers
+
+Official YouTube trailers and clips from TMDB, rendered as a facade — no iframe,
+no third-party script and no cookies until you actually press play.
+
+### Ask
+
+Free-form questions about a film. Every answer carries its own spoiler rating, and
+anything above "none" stays blurred until you choose to read it.
+
+### Mood
+
+Three questions instead of a dropdown — a feeling, an energy level, and how much
+runtime you have — because "sad" alone doesn't separate a slow melancholy film from
+a cathartic one.
+
+### Pix
+
+A small cyborg perched on the dock. It tracks your cursor and tells you production
+trivia about whichever films are currently on the page. It speaks once unprompted,
+then only when asked, and it can be muted for good.
+
+### Three themes
+
+Light, dark, and AMOLED. AMOLED is not just "darker": on an OLED panel a true-black
+pixel is switched off, so it gets `#000` surfaces, brighter accents to survive
+against them, stronger hairlines, and half the film grain. Applied before first
+paint, so there is no flash of the wrong theme.
+
+### Installable
+
+A real PWA — manifest, maskable icons, app shortcuts, and a service worker with an
+offline fallback. The worker never caches `/api/*`: those responses are built from
+your region, your session and live AI output.
+
+---
+
+## Design
+
+Editorial, projector-lit, hairline-ruled, and deliberately **not a card layout** —
+structure comes from type scale, rules and negative space. Search results are a
+numbered index with a still that floats to the cursor, not a grid of boxes.
+
+Three WebGL/physics pieces from [React Bits](https://reactbits.dev):
+
+| Component | Used for | Engine |
+| --- | --- | --- |
+| `FlexCarousel` | Trending posters, stepped by scroll | ogl |
+| `PaperCrumple` | The poster you can crumple and drag | three |
+| `FolderFloat` | AI notes that spill out of a folder | matter-js |
+
+Motion is GSAP + ScrollTrigger on a Lenis-driven scroll, both on one ticker so
+scrubbed animation doesn't judder. Every reveal honours `prefers-reduced-motion`,
+and the hidden start states are armed by a pre-paint script with two escape hatches
+so content can never be trapped invisible.
+
+---
+
+## Tech stack
+
+- **[Next.js 15](https://nextjs.org/)** (App Router, Turbopack) + **React 19**
+- **[Tailwind CSS 4](https://tailwindcss.com/)** — semantic colour tokens, re-themed per mode
+- **[Groq](https://groq.com/)** — `openai/gpt-oss-120b`, falling back to `gpt-oss-20b`
+- **[OMDb](https://www.omdbapi.com/)** — search, ratings, credits
+- **[TMDB](https://www.themoviedb.org/)** — backdrops, availability, trailers
+- **[Firebase](https://firebase.google.com/)** — auth and the films you keep
+- **[GSAP](https://gsap.com/) + [Lenis](https://lenis.darkroom.engineering/)** — scroll and motion
+
+---
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env    # then fill in the three keys
+npm run dev
+```
+
+### Keys
+
+All three live in `.env` and stay on the server — every upstream call goes through
+a route under `/api`, so nothing is exposed to the browser.
+
+| Variable | Where to get it |
+| --- | --- |
+| `GROQ_API_KEY` | <https://console.groq.com/keys> |
+| `OMDB_API_KEY` | <https://www.omdbapi.com/apikey.aspx> (free, instant) |
+| `TMDB_API_KEY` | <https://www.themoviedb.org/settings/api> |
+
+**On the OMDb key:** OMDb emails it inside an example URL like
+`http://www.omdbapi.com/?i=tt3896198&apikey=abc12345`. Only the part after
+`apikey=` is the key — but pasting the whole URL works too, it gets parsed out.
+
+**On the TMDB key:** that page shows two credentials and either works on its own —
+the short v3 "API Key" (`TMDB_API_KEY`) or the long v4 read token
+(`TMDB_ACCESS_TOKEN`).
+
+> **If you are in India:** several ISPs DNS-hijack `api.themoviedb.org` and the
+> connection hangs until it times out. The app tries `api.tmdb.org` — TMDB's other
+> official hostname — first, and falls back, so it works on either network without
+> a VPN.
+
+---
+
+## Architecture
+
+```
+app/
+  api/
+    ai/        vibe · synopsis · availability · mood · recommend · ask · fact
+    movies/    search · [id] · [id]/videos · trending     (OMDb + TMDB proxies)
+    img/       CORS proxy, host-allowlisted, for WebGL textures
+  lib/
+    groq.js    JSON-mode client, model fallback, response normalising
+    movies.js  OMDb + TMDB, key parsing, TMDB host failover
+    cache.js   process-local TTL cache
+  components/
+    motion/    SmoothScroll (Lenis+GSAP) · Reveal · SplitLines · Parallax
+    reactbits/ FlexCarousel · PaperCrumple · FolderFloat
+    …          Dock · CyborgBot · VibeMeter · TrailerReel · AvailabilityRail …
+```
+
+**Why the image proxy:** `FlexCarousel` (ogl) and `PaperCrumple` (three) request
+textures with `crossOrigin='anonymous'`. `m.media-amazon.com` sends
+`Access-Control-Allow-Origin: *` so OMDb posters work directly, but
+`image.tmdb.org` sends no CORS header at all and its textures silently fail to
+upload. `/api/img` re-serves them from our own origin with the header attached, and
+is strictly host-allowlisted so it cannot be used as an open proxy.
+
+**AI output is normalised, never trusted raw.** Every route shapes what comes back —
+clamping scores, padding short arrays, interpolating a missing curve — so a
+malformed response degrades the visual instead of breaking the page. Film data
+coming from OMDb/TMDB is labelled as data in every system prompt, so text inside a
+plot summary cannot redirect the model.
+
+---
+
+## Scripts
+
+```bash
+npm run dev     # dev server, Turbopack
+npm run build   # production build
+npm run start   # serve the build (service worker only registers here)
+npm run lint
+```
