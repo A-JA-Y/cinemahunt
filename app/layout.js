@@ -3,6 +3,7 @@ import './globals.css';
 import SmoothScroll from './components/motion/SmoothScroll';
 import ServiceWorker from './components/ServiceWorker';
 import Preloader from './components/Preloader';
+import { Analytics } from '@vercel/analytics/next';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'], display: 'swap' });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'], display: 'swap' });
@@ -100,6 +101,7 @@ export default function RootLayout({ children }) {
         <Preloader />
         <SmoothScroll>{children}</SmoothScroll>
         <ServiceWorker />
+        <Analytics />
       </body>
     </html>
   );
