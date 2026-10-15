@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import WatchNow from './WatchNow';
 
 /**
  * Where to watch it.
@@ -205,6 +206,16 @@ export default function AvailabilityRail({ movie, region, onRegionChange }) {
             </div>
           )}
 
+          {/* Act on it: copy the title and jump to a service ---------------- */}
+          <div className="mt-12 flex flex-wrap items-center gap-4">
+            <WatchNow movie={movie} data={data} region={region} regionLabel={regionName(region)} />
+            {data.link && (
+              <a href={data.link} target="_blank" rel="noreferrer noopener" className="ch-btn ch-btn--ghost">
+                Open in JustWatch ↗
+              </a>
+            )}
+          </div>
+
           {/* Viewing note ------------------------------------------------- */}
           {(data.note || data.format) && (
             <div className="mt-16 grid gap-8 border-t border-hairline pt-10 sm:grid-cols-[1fr_auto] sm:gap-16">
@@ -220,16 +231,7 @@ export default function AvailabilityRail({ movie, region, onRegionChange }) {
             </div>
           )}
 
-          <a
-            href={data.link}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="ch-btn ch-btn--ghost mt-12"
-          >
-            Open in JustWatch ↗
-          </a>
-
-          <p className="ch-tag mt-6">
+          <p className="ch-tag mt-10">
             {data.source === 'tmdb'
               ? 'Listings via TMDB / JustWatch'
               : data.source === 'ai-estimate'
