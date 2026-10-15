@@ -51,7 +51,13 @@ export default function VibeMeter({ vibe, loading, error }) {
     }
 
     gsap.registerPlugin(ScrollTrigger);
+    // Held as locals rather than read from the refs per frame: leaving the page,
+    // Next scrolls during the commit, after React has nulled the refs but before
+    // this effect's cleanup kills the trigger, and gsap.set(null) warns.
     const path = pathRef.current;
+    const area = areaRef.current;
+    const head = headRef.current;
+    const glow = glowRef.current;
     const length = path.getTotalLength();
     gsap.set(path, { strokeDasharray: length, strokeDashoffset: length });
 
@@ -71,11 +77,11 @@ export default function VibeMeter({ vibe, loading, error }) {
 
           // Imperative per-frame work stays out of React.
           gsap.set(path, { strokeDashoffset: length * (1 - p) });
-          gsap.set(areaRef.current, { scaleX: p });
+          gsap.set(area, { scaleX: p });
 
           const point = path.getPointAtLength(length * p);
-          gsap.set(headRef.current, { attr: { cx: point.x, cy: point.y } });
-          gsap.set(glowRef.current, { attr: { cx: point.x, cy: point.y } });
+          gsap.set(head, { attr: { cx: point.x, cy: point.y } });
+          gsap.set(glow, { attr: { cx: point.x, cy: point.y } });
         }
       });
     }, section);
