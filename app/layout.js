@@ -25,6 +25,11 @@ export const metadata = {
     description: 'How a film feels, before you press play.',
     type: 'website'
   },
+  // Google Search Console ownership check. Next renders this as
+  // <meta name="google-site-verification" content="…"> in every page's <head>.
+  verification: {
+    google: 'HE6lb9yfOyGm3J7SkbGfmAcGEIAOa2JxCD9FcLk5LPk'
+  },
   applicationName: 'CinemaHunt',
   appleWebApp: {
     capable: true,
