@@ -1,39 +1,55 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import FlexCarousel from './reactbits/FlexCarousel';
 import { texture } from '../lib/img';
 import { useStagePublisher } from './stage';
+import { useLenis } from './motion/SmoothScroll';
 
 /**
  * The trending carousel, advanced by scroll instead of a timer.
  *
- * The panel pins and scroll progress maps onto the carousel's index, so scrolling
- * walks the ten posters one at a time and scrolling back walks them in reverse.
+ * The panel pins and scroll progress picks the poster — the first at the top of
+ * the pin, the last at the bottom — so scrolling walks the row and scrolling back
+ * walks it in reverse.
  *
- * FlexCarousel has no controlled-index prop, but its container listens for
- * ArrowLeft/ArrowRight keydown and steps exactly one item per press. Dispatching
- * those at the container is therefore a supported path through its own logic
- * rather than a reach into its internals — and it keeps the component's easing,
- * wrapping and WebGL state intact.
+ * Scroll is the only thing that moves it: FlexCarousel runs controlled and glides
+ * to the index the scroll position maps to. (It used to be stepped with synthetic
+ * arrow-key presses while its own mid-animation position was fed back in as the
+ * current index; every fast scroll overshot, and a wrap past the last poster could
+ * set it spinning round the loop.)
+ *
+ * Every poster is a real link to its film. Keyboard: Tab reaches the centred
+ * poster, and the arrow keys move along the row by scrolling the page to that
+ * poster's spot, so the page and the carousel can never disagree.
  *
  * @param {{ trending: Array<object> }} props
  */
 
 const COUNT = 10;
 
+// Scroll distance per poster, as a fraction of the viewport height: two or three
+// wheel notches per poster, so the pin reads as a row to walk, not a wall to
+// scroll through (it used to be 0.65 — six and a half screens for ten posters).
+const STEP = 0.3;
+const STEP_NARROW = 0.24;
+
+const hrefFor = item => (item.imdbId ? `/movie/${item.imdbId}` : null);
+
 export default function ScrollCarousel({ trending = [] }) {
-  const router = useRouter();
+  const lenis = useLenis();
   const sectionRef = useRef(null);
   const pinRef = useRef(null);
-  const hostRef = useRef(null);
+  const triggerRef = useRef(null);
 
-  // The carousel's real index, kept current by its onChange.
-  const indexRef = useRef(0);
+  // Where the scroll says the row should be, and what the carousel is showing.
+  const [index, setIndex] = useState(0);
   const [display, setDisplay] = useState(0);
+  // Off under reduced motion: no pin, and the carousel is moved by hand instead.
+  const [scrollDriven, setScrollDriven] = useState(true);
 
   const items = useMemo(
     () =>
@@ -61,46 +77,52 @@ export default function ScrollCarousel({ trending = [] }) {
   useEffect(() => {
     const section = sectionRef.current;
     if (!section || items.length < 2) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setScrollDriven(false);
+      return;
+    }
 
     gsap.registerPlugin(ScrollTrigger);
-
-    const drive = target => {
-      const host = hostRef.current?.querySelector('.flex-carousel');
-      if (!host) return;
-
-      // Walk the difference, not the shortest wrapped path: scrolling down must
-      // always read forwards through the row, never jump backwards past the end.
-      const diff = target - indexRef.current;
-      if (!diff) return;
-
-      const key = diff > 0 ? 'ArrowRight' : 'ArrowLeft';
-      for (let i = 0; i < Math.abs(diff); i++) {
-        host.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
-      }
-      indexRef.current = target;
-      setDisplay(target);
-    };
+    const last = items.length - 1;
+    // Nearest poster to the progress point. React skips the render when the
+    // index has not changed, so this is cheap to call on every scroll tick.
+    const sync = self => setIndex(Math.round(self.progress * last));
 
     const ctx = gsap.context(() => {
-      ScrollTrigger.create({
+      triggerRef.current = ScrollTrigger.create({
         trigger: section,
         start: 'top top',
-        // One viewport-ish of scroll per poster, so stepping feels deliberate.
-        end: () => `+=${items.length * (window.innerWidth < 640 ? 45 : 65)}%`,
+        end: () => {
+          const step = window.innerWidth < 640 ? STEP_NARROW : STEP;
+          return `+=${Math.round(window.innerHeight * step * last)}`;
+        },
         pin: pinRef.current,
         anticipatePin: 1,
-        scrub: false,
         invalidateOnRefresh: true,
-        onUpdate: self => {
-          // 0.999 keeps progress === 1 from landing one index past the end.
-          drive(Math.min(items.length - 1, Math.floor(self.progress * items.length * 0.999)));
-        }
+        onUpdate: sync,
+        onRefresh: sync
       });
     }, section);
 
-    return () => ctx.revert();
+    return () => {
+      triggerRef.current = null;
+      ctx.revert();
+    };
   }, [items]);
+
+  // Arrow keys on the carousel: scroll to that poster's spot in the pin.
+  const requestIndex = useCallback(
+    next => {
+      const trigger = triggerRef.current;
+      const last = items.length - 1;
+      if (!trigger || last < 1) return;
+      const clamped = Math.max(0, Math.min(last, next));
+      const y = trigger.start + (clamped / last) * (trigger.end - trigger.start);
+      if (lenis) lenis.scrollTo(y, { duration: 0.8 });
+      else window.scrollTo({ top: y, behavior: 'smooth' });
+    },
+    [items.length, lenis]
+  );
 
   if (!items.length) {
     return (
@@ -112,16 +134,12 @@ export default function ScrollCarousel({ trending = [] }) {
     );
   }
 
-  const open = item => {
-    if (item?.imdbId) router.push(`/movie/${item.imdbId}`);
-  };
-
   return (
     <section ref={sectionRef} className="relative">
       <div ref={pinRef} className="flex min-h-screen flex-col justify-center py-20">
         <div className="ch-shell mb-6 flex items-end justify-between gap-6">
           <span className="ch-tag">Trending this week</span>
-          <span className="ch-tag hidden sm:block">Scroll to advance · click to open</span>
+          <span className="ch-tag hidden sm:block">Scroll to browse · click a poster to open</span>
           <span className="ch-num shrink-0 text-fine text-ash tabular-nums">
             <span className="text-bone">{String(display + 1).padStart(2, '0')}</span>
             <span className="mx-1 text-ash-dim">/</span>
@@ -129,7 +147,7 @@ export default function ScrollCarousel({ trending = [] }) {
           </span>
         </div>
 
-        <div ref={hostRef} className="relative h-[clamp(260px,42vh,460px)] w-full">
+        <div className="relative h-[clamp(260px,42vh,460px)] w-full">
           <FlexCarousel
             items={items}
             preset="liquid"
@@ -142,14 +160,16 @@ export default function ScrollCarousel({ trending = [] }) {
             captions
             focusOnClick={false}
             autoplay={false}
-            /* Scroll drives the index now; letting the canvas eat wheel events
-               would fight the pin and strand the page here. */
+            /* Scroll owns the position. Letting the canvas eat wheel events or
+               drags would fight the pin and strand the page here. */
             captureWheel={false}
-            onChange={index => {
-              indexRef.current = index;
-              setDisplay(index);
-            }}
-            onSelect={(_index, item) => open(item)}
+            index={scrollDriven ? index : undefined}
+            onRequestIndex={requestIndex}
+            draggable={!scrollDriven}
+            getHref={hrefFor}
+            linkAs={Link}
+            ariaLabel="Trending this week"
+            onChange={next => setDisplay(next)}
           />
         </div>
 

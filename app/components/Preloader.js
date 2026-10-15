@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -18,6 +18,13 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
  * The counter is honest about readiness — it eases toward 100 but will not arrive
  * until fonts and the load event are both done, with a floor so a warm cache
  * doesn't produce a 200ms flicker.
+ *
+ * Once it has lifted it unmounts through state, so React removes the node itself.
+ * It must never be pulled out of the DOM by hand: it is the first child React owns
+ * in <body>, and Next.js inserts its streaming-metadata <div hidden> in front of it
+ * on every client navigation. Against a node that is no longer there, that
+ * insertBefore() throws, which took down every film link with "Application error:
+ * a client-side exception has occurred".
  */
 
 const MIN_MS = 1100; // never shorter than this, or it reads as a glitch
@@ -25,14 +32,15 @@ const MAX_MS = 3600; // never longer than this, however slow the network is
 
 export default function Preloader() {
   const rootRef = useRef(null);
+  const [retired, setRetired] = useState(false);
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
 
-    // Already retired before paint (reduced motion, or seen this session).
+    // Already hidden before paint (reduced motion, or seen this session).
     if (document.documentElement.dataset.preloaded === 'true') {
-      root.remove();
+      setRetired(true);
       return;
     }
 
@@ -99,14 +107,16 @@ export default function Preloader() {
       }
     }, MAX_MS + 600);
 
+    let exitTimeline = null;
+
     function exit() {
       clearTimeout(bail);
 
-      gsap
+      exitTimeline = gsap
         .timeline({
           onComplete: () => {
             document.documentElement.style.overflow = '';
-            root.remove();
+            setRetired(true);
             // The page laid out under a locked scrollbar; re-measure before any
             // pinned section computes its start position.
             ScrollTrigger.refresh();
@@ -127,9 +137,12 @@ export default function Preloader() {
     return () => {
       clearTimeout(bail);
       tween.kill();
+      exitTimeline?.kill();
       document.documentElement.style.overflow = '';
     };
   }, []);
+
+  if (retired) return null;
 
   return (
     <div ref={rootRef} className="ch-preloader" aria-hidden="true">
