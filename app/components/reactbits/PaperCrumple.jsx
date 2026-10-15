@@ -494,7 +494,9 @@ const PaperCrumple = ({
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = shadow;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // three r18x dropped PCFSoftShadowMap and falls back to PCFShadowMap with a
+    // console warning on every page that shows the poster; ask for it directly.
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     const amount = spring(),
       memory = spring(),
       posX = spring(),

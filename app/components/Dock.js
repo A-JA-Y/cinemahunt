@@ -42,16 +42,34 @@ export default function Dock({ onSignIn, onSearch }) {
     if (window.matchMedia('(hover: none)').matches) return;
 
     const items = Array.from(rail.querySelectorAll('[data-dock-item]'));
-    quickRef.current = items.map(item => ({
-      el: item,
-      scale: gsap.quickTo(item, 'scale', { duration: 0.35, ease: 'power3' }),
-      y: gsap.quickTo(item, 'y', { duration: 0.35, ease: 'power3' })
-    }));
+    const ease = { duration: 0.35, ease: 'power3' };
+    quickRef.current = items.map(item => {
+      // quickTo needs a single real property. `scale` is a shorthand GSAP splits
+      // into scaleX/scaleY, so quickTo(item, 'scale') could never retarget: every
+      // call re-initialised the tween (a computed-style read per item per
+      // pointermove) and logged "scale not eligible for reset".
+      const scaleX = gsap.quickTo(item, 'scaleX', ease);
+      const scaleY = gsap.quickTo(item, 'scaleY', ease);
+      return {
+        el: item,
+        scale: value => {
+          scaleX(value);
+          scaleY(value);
+        },
+        y: gsap.quickTo(item, 'y', ease)
+      };
+    });
+
+    // Whether the last move was inside the band, so a pointer roaming the rest
+    // of the page does not keep re-targeting tweens that are already at rest.
+    let wasNear = false;
 
     const onMove = event => {
       const bounds = rail.getBoundingClientRect();
       // Only magnify while the pointer is near the dock's band.
       const near = event.clientY > bounds.top - 90 && event.clientY < bounds.bottom + 40;
+      if (!near && !wasNear) return;
+      wasNear = near;
 
       for (const entry of quickRef.current) {
         if (!near) {
@@ -70,6 +88,7 @@ export default function Dock({ onSignIn, onSearch }) {
     };
 
     const onLeave = () => {
+      wasNear = false;
       for (const entry of quickRef.current) {
         entry.scale(1);
         entry.y(0);
@@ -81,6 +100,7 @@ export default function Dock({ onSignIn, onSearch }) {
     return () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerleave', onLeave);
+      gsap.killTweensOf(items, 'scaleX,scaleY,y');
       quickRef.current = [];
     };
   }, [user]);
