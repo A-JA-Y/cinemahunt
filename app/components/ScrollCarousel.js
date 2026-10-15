@@ -22,9 +22,10 @@ import { useLenis } from './motion/SmoothScroll';
  * current index; every fast scroll overshot, and a wrap past the last poster could
  * set it spinning round the loop.)
  *
- * Every poster is a real link to its film. Keyboard: Tab reaches the centred
- * poster, and the arrow keys move along the row by scrolling the page to that
- * poster's spot, so the page and the carousel can never disagree.
+ * Every poster is a real link to its film. A swipe (or mouse drag) pulls the row
+ * under the finger and settles on a poster; the arrow keys step along it. Both
+ * then scroll the page to that poster's spot in the pin, so the page and the
+ * carousel can never disagree.
  *
  * @param {{ trending: Array<object> }} props
  */
@@ -110,7 +111,7 @@ export default function ScrollCarousel({ trending = [] }) {
     };
   }, [items]);
 
-  // Arrow keys on the carousel: scroll to that poster's spot in the pin.
+  // A swipe or arrow key on the carousel: scroll to that poster's spot in the pin.
   const requestIndex = useCallback(
     next => {
       const trigger = triggerRef.current;
@@ -118,7 +119,7 @@ export default function ScrollCarousel({ trending = [] }) {
       if (!trigger || last < 1) return;
       const clamped = Math.max(0, Math.min(last, next));
       const y = trigger.start + (clamped / last) * (trigger.end - trigger.start);
-      if (lenis) lenis.scrollTo(y, { duration: 0.8 });
+      if (lenis) lenis.scrollTo(y, { duration: 0.6 });
       else window.scrollTo({ top: y, behavior: 'smooth' });
     },
     [items.length, lenis]
@@ -139,7 +140,7 @@ export default function ScrollCarousel({ trending = [] }) {
       <div ref={pinRef} className="flex min-h-screen flex-col justify-center py-20">
         <div className="ch-shell mb-6 flex items-end justify-between gap-6">
           <span className="ch-tag">Trending this week</span>
-          <span className="ch-tag hidden sm:block">Scroll to browse · click a poster to open</span>
+          <span className="ch-tag hidden sm:block">Scroll or swipe to browse · click a poster to open</span>
           <span className="ch-num shrink-0 text-fine text-ash tabular-nums">
             <span className="text-bone">{String(display + 1).padStart(2, '0')}</span>
             <span className="mx-1 text-ash-dim">/</span>
@@ -160,12 +161,12 @@ export default function ScrollCarousel({ trending = [] }) {
             captions
             focusOnClick={false}
             autoplay={false}
-            /* Scroll owns the position. Letting the canvas eat wheel events or
-               drags would fight the pin and strand the page here. */
+            /* Scroll owns the position: the wheel stays the page's (letting the
+               canvas eat it would strand the page in the pin), and swipes come
+               back through onRequestIndex as a scroll. */
             captureWheel={false}
             index={scrollDriven ? index : undefined}
             onRequestIndex={requestIndex}
-            draggable={!scrollDriven}
             getHref={hrefFor}
             linkAs={Link}
             ariaLabel="Trending this week"

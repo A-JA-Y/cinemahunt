@@ -9,9 +9,10 @@ import { toast } from './toast';
  * Copying first means the title is one paste away wherever the viewer lands —
  * several services drop a search query until you are signed in. The list is the
  * services TMDB / JustWatch list for this film in the chosen region, each sent
- * straight to that service's own search for the title, followed by a few
- * search-everywhere fallbacks. Every link opens in a new tab with no opener, so
- * the page that was opened cannot reach back into this one.
+ * straight to that service's own search for the title; then the free, ad-supported
+ * services that stream in that region; then a couple of search-everywhere
+ * fallbacks. Every link opens in a new tab with no opener, so the page that was
+ * opened cannot reach back into this one.
  *
  * A disclosure (button + list of links) rather than an ARIA menu: these are plain
  * navigation links, so Tab, middle-click and "copy link" all behave as usual.
@@ -35,6 +36,54 @@ const SEARCH_URLS = [
   [/bbc iplayer/i, q => `https://www.bbc.co.uk/iplayer/search?q=${q}`],
   [/hotstar/i, q => `https://www.hotstar.com/in/explore?search_query=${q}`],
   [/mubi/i, q => `https://mubi.com/en/search/films?query=${q}`]
+];
+
+// Free, ad-supported and licensed. `regions` is where each one streams (null:
+// most countries) and `match` spots it among the listed services so it is not
+// shown twice. Every search URL was checked to land on the service's search page,
+// except MX Player's: it geo-blocks outside India, so it opens on its home page
+// and the copied title does the rest.
+const FREE_SERVICES = [
+  {
+    name: 'Tubi',
+    match: /tubi/i,
+    regions: ['US', 'CA', 'GB', 'AU'],
+    href: title => `https://tubitv.com/search/${encodeURIComponent(title)}`
+  },
+  {
+    name: 'Pluto TV',
+    match: /pluto/i,
+    regions: ['US', 'CA', 'GB', 'DE', 'FR', 'BR'],
+    // No country in the path: Pluto redirects to the viewer's own edition.
+    href: title => `https://pluto.tv/search/?query=${encodeURIComponent(title)}`
+  },
+  {
+    name: 'Plex',
+    match: /plex/i,
+    regions: null,
+    href: title => `https://watch.plex.tv/search?query=${encodeURIComponent(title)}`
+  },
+  {
+    name: 'The Roku Channel',
+    match: /roku/i,
+    regions: ['US'],
+    href: title => `https://therokuchannel.roku.com/search/${encodeURIComponent(title)}`
+  },
+  {
+    name: 'Amazon MX Player',
+    match: /mx ?player/i,
+    regions: ['IN'],
+    href: () => 'https://www.mxplayer.in/'
+  },
+  {
+    name: 'YouTube',
+    match: /youtube/i,
+    regions: null,
+    hint: 'Free with ads, rent or buy',
+    // sp=EgIQBA== is YouTube's "Type: Movie" filter: official film listings only.
+    href: (title, year) =>
+      `https://www.youtube.com/results?search_query=${encodeURIComponent(year ? `${title} ${year}` : title)}&sp=EgIQBA%253D%253D`
+  }
 ];
 
 // JustWatch's country slugs match ISO codes except for the UK.
@@ -61,6 +110,19 @@ function listedServices(data, title) {
     .filter(entry => entry.href);
 }
 
+/** Free services that stream in this region and are not already listed above. */
+function freeServices(title, year, region, listed) {
+  return FREE_SERVICES.filter(
+    service =>
+      (!service.regions || service.regions.includes(region)) &&
+      !listed.some(entry => service.match.test(entry.name))
+  ).map(service => ({
+    name: service.name,
+    hint: service.hint ?? 'Free with ads',
+    href: service.href(title, year)
+  }));
+}
+
 function everywhere(title, year, region) {
   const titled = year ? `${title} ${year}` : title;
   const slug = JUSTWATCH_REGION[region] ?? region.toLowerCase();
@@ -74,11 +136,6 @@ function everywhere(title, year, region) {
       name: 'Google',
       hint: 'Where to watch',
       href: `https://www.google.com/search?q=${encodeURIComponent(`where to watch ${titled}`)}`
-    },
-    {
-      name: 'YouTube',
-      hint: 'Rent, buy or free with ads',
-      href: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${titled} movie`)}`
     }
   ];
 }
@@ -115,8 +172,8 @@ export default function WatchNow({ movie, data, region, regionLabel }) {
 
   const title = movie.title;
   const services = listedServices(data, title);
-  const listedNames = new Set(services.map(s => s.name.toLowerCase()));
-  const fallbacks = everywhere(title, movie.year, region).filter(s => !listedNames.has(s.name.toLowerCase()));
+  const free = freeServices(title, movie.year, region, services);
+  const fallbacks = everywhere(title, movie.year, region);
 
   // Outside press or Escape closes it; Escape hands focus back to the button.
   useEffect(() => {
@@ -203,6 +260,7 @@ export default function WatchNow({ movie, data, region, regionLabel }) {
           {services.length > 0 && (
             <WatchGroup label={`Listed in ${regionLabel}`} entries={services} />
           )}
+          {free.length > 0 && <WatchGroup label="Free with ads" entries={free} />}
           <WatchGroup label="Search everywhere" entries={fallbacks} />
         </div>
       )}

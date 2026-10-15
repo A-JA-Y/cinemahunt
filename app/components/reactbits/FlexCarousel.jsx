@@ -281,8 +281,9 @@ const FlexCarousel = ({
   captions = true,
   captureWheel = true,
   // Controlled mode: when `index` is a number the parent owns the position and the
-  // carousel only glides to it. Arrow keys then ask via onRequestIndex instead of
-  // moving on their own, and wheel input is left to the page.
+  // carousel only glides to it. Arrow keys and swipes then ask via onRequestIndex
+  // instead of moving on their own (a swipe still follows the finger and lands on
+  // a card first), and wheel input is left to the page.
   index,
   onRequestIndex,
   draggable = true,
@@ -491,6 +492,11 @@ const FlexCarousel = ({
     // Controlled mode: the index the spring is currently heading for (-1 = not yet
     // placed, so the first placement lands without a fly-in).
     let appliedIndex = -1;
+    // Controlled mode: the index a swipe asked the owner for, and when. Until the
+    // owner's index arrives (or the request lapses) the in-between values it
+    // reports on the way there are ignored, so the row doesn't double back.
+    let requested = -1;
+    let requestedAt = 0;
     // Last geometry written to each link overlay, to skip identical style writes.
     let linkKeys = [];
 
@@ -565,6 +571,7 @@ const FlexCarousel = ({
       slots = next.map(loadSlot);
       activeIndex = -1;
       appliedIndex = -1;
+      requested = -1;
       linkKeys = [];
       layout = null;
       resnap = true;
@@ -799,7 +806,12 @@ const FlexCarousel = ({
 
       if (s.controlled) {
         const want = Math.max(0, Math.min(n - 1, Math.round(s.index)));
-        if (want !== appliedIndex) {
+        if (requested >= 0) {
+          if (want === requested || now - requestedAt > 1200) requested = -1;
+          else animating = true;
+        }
+        // The finger owns the row mid-drag; the owner's index applies after.
+        if (requested < 0 && !pointer.dragging && want !== appliedIndex) {
           // Head straight for the card within the current lap instead of taking
           // the shortest wrapped path: a controlled position maps to one place in
           // the row, so last-to-first has to run back through it, not loop past
@@ -1082,6 +1094,19 @@ const FlexCarousel = ({
       return [e.clientX - rect.left, e.clientY - rect.top];
     };
 
+    // Settle on a card again after a press froze the row mid-glide: the nearest
+    // one to `at`, or in controlled mode the card the owner has asked for.
+    const resettle = (m, s, at) => {
+      if (s.controlled && appliedIndex >= 0) {
+        const lap = Math.round((at - m.centers[appliedIndex]) / m.loop);
+        goal = lap * m.loop + m.centers[appliedIndex];
+      } else {
+        goal = snapPoint(m, at);
+      }
+      mode = 'spring';
+      start();
+    };
+
     const onPointerDown = e => {
       if (e.button !== undefined && e.button > 0) return;
       skipIntro();
@@ -1165,6 +1190,30 @@ const FlexCarousel = ({
         }
         vel = velocity;
         const landing = snapPoint(m, pos + velocity * 0.32);
+        if (s.controlled) {
+          // Swipe: land on a card inside the row (dragging past either end
+          // springs back instead of wrapping), then ask the owner to move there.
+          const last = slots.length - 1;
+          const home = Math.max(0, appliedIndex);
+          const lap = Math.round((pointer.startPos - m.centers[home]) / m.loop);
+          const card = nearest(m, landing);
+          const landingLap = Math.round((landing - m.centers[card]) / m.loop);
+          let target = landingLap > lap ? last : landingLap < lap ? 0 : card;
+          // A quick flick that would not leave the current card still moves one.
+          if (target === home && Math.abs(velocity) > 400) {
+            target = Math.max(0, Math.min(last, home + (velocity > 0 ? 1 : -1)));
+          }
+          goal = lap * m.loop + m.centers[target];
+          mode = 'spring';
+          if (target !== appliedIndex) {
+            appliedIndex = target;
+            requested = target;
+            requestedAt = performance.now();
+            callbacksRef.current.onRequestIndex?.(target);
+          }
+          start();
+          return;
+        }
         goal = landing;
         if (Math.abs(velocity) > 400 && Math.abs(landing - pos) < 1) step(m, velocity > 0 ? 1 : -1);
         mode = 'spring';
@@ -1172,6 +1221,8 @@ const FlexCarousel = ({
         return;
       }
       if (closeFocus()) return;
+      // A press that caught the row mid-glide froze it; put it back on a card.
+      if (Math.abs(goal - pos) > 0.5 || Math.abs(vel) > 0.5) resettle(m, s, goal);
       const [x, y] = localPoint(e);
       const hit = instances.find(inst => x >= inst.x0 && x <= inst.x1 && y >= inst.y0 && y <= inst.y1);
       if (!hit) return;
@@ -1201,9 +1252,7 @@ const FlexCarousel = ({
       container.removeAttribute('data-dragging');
       const s = settingsRef.current;
       if (!s) return;
-      goal = snapPoint(metrics(s), pos);
-      mode = 'spring';
-      start();
+      resettle(metrics(s), s, pos);
     };
 
     const onWheel = e => {

@@ -1036,8 +1036,9 @@ img {
   padding: 0.4rem;
   border: 1px solid var(--color-hairline-strong);
   border-radius: 1.1rem;
-  background: color-mix(in oklab, var(--color-ink) 94%, transparent);
-  backdrop-filter: blur(22px) saturate(150%);
+  /* Solid, unlike the theme tray: the list is long enough to sit over display
+     type in the next section, which bled through a translucent slab. */
+  background: var(--color-ink-raised);
   box-shadow: 0 24px 60px -16px rgb(0 0 0 / 0.6);
   animation: ch-tray-in 0.4s var(--ease-out-expo) both;
 }
