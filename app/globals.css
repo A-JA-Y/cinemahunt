@@ -801,6 +801,11 @@ img {
   }
 }
 
+/* The home hero's backdrop links to its film: bring it forward a touch on hover. */
+.ch-hero:has(.ch-hero-link:hover) .ch-backdrop {
+  opacity: calc(var(--ch-backdrop-opacity, 0.34) + 0.1);
+}
+
 /* ============================================================================
    Dock
    A floating rail at the bottom. Items magnify by pointer proximity (Dock.js

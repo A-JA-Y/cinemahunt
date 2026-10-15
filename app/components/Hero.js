@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
+import Link from 'next/link';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SplitLines from './motion/SplitLines';
@@ -10,6 +11,10 @@ import SplitLines from './motion/SplitLines';
  * hero drift and dim as you scroll out of it, so leaving the hero feels like a
  * camera move rather than a page jump.
  *
+ * The backdrop is a still from the top trending film, and it opens that film:
+ * clicking anywhere on the picture does (the type lets clicks through), and the
+ * "On screen" link beside the tag names it as an ordinary, focusable link.
+ *
  * @param {{ trending: Array<{imdbId: string, title: string, year: string|null, poster: string, backdrop: string|null}> }} props
  */
 export default function Hero({ trending = [] }) {
@@ -17,7 +22,9 @@ export default function Hero({ trending = [] }) {
   const backdropRef = useRef(null);
   const contentRef = useRef(null);
 
-  const backdrop = trending.find(m => m.backdrop)?.backdrop ?? null;
+  const featured = trending.find(m => m.backdrop && m.imdbId) ?? null;
+  const backdrop = featured?.backdrop ?? null;
+  const href = featured ? `/movie/${featured.imdbId}` : null;
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -54,12 +61,14 @@ export default function Hero({ trending = [] }) {
   return (
     <section
       ref={sectionRef}
-      className="relative flex min-h-screen flex-col justify-between overflow-hidden pt-28 pb-8"
+      /* isolate: keeps the -z-10 backdrop inside this section's stacking context,
+         under the headline but above the page, so it can take clicks. */
+      className="ch-hero relative isolate flex min-h-screen flex-col justify-between overflow-hidden pt-28 pb-8"
     >
       {/* Backdrop ------------------------------------------------------- */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
+      <div className="absolute inset-0 -z-10">
         {backdrop && (
-          <div ref={backdropRef} className="absolute inset-0">
+          <div ref={backdropRef} className="pointer-events-none absolute inset-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={backdrop}
@@ -69,16 +78,49 @@ export default function Hero({ trending = [] }) {
             />
           </div>
         )}
-        <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_0%,transparent_10%,var(--color-ink)_75%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink via-ink/85 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_0%,transparent_10%,var(--color-ink)_75%)]" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink via-ink/85 to-transparent" />
+        {/* The whole picture opens the film. Mouse-only: the "On screen" link
+            is the keyboard and screen-reader route to the same page. */}
+        {href && (
+          <Link
+            href={href}
+            tabIndex={-1}
+            aria-hidden="true"
+            draggable={false}
+            className="ch-hero-link absolute inset-0 cursor-pointer"
+          />
+        )}
       </div>
 
       {/* Headline ------------------------------------------------------- */}
-      <div ref={contentRef} className="ch-shell relative">
-        <p className="ch-tag mb-8 flex items-center gap-3">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-ember" />
-          Now hunting
-        </p>
+      {/* Clicks fall through the type to the film behind it. */}
+      <div ref={contentRef} className="ch-shell pointer-events-none relative">
+        <div className="mb-8 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-3">
+          <p className="ch-tag flex items-center gap-3">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-ember" />
+            Now hunting
+          </p>
+
+          {featured && (
+            <Link
+              href={href}
+              className="group/feat pointer-events-auto flex min-w-0 max-w-full items-baseline gap-3 no-underline"
+            >
+              <span className="ch-tag shrink-0">On screen</span>
+              <span className="ch-title min-w-0 truncate !text-[clamp(1rem,1.8vw,1.4rem)] transition-colors duration-500 group-hover/feat:text-ember">
+                {featured.title}
+              </span>
+              {featured.year && <span className="ch-num shrink-0 text-fine text-ash">{featured.year}</span>}
+              <span
+                aria-hidden="true"
+                className="shrink-0 text-ash transition-[transform,color] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/feat:translate-x-1 group-hover/feat:text-ember"
+              >
+                →
+              </span>
+            </Link>
+          )}
+        </div>
 
         <SplitLines
           as="h1"
