@@ -280,8 +280,19 @@ const FlexCarousel = ({
   interval = 4,
   captions = true,
   captureWheel = true,
+  // Controlled mode: when `index` is a number the parent owns the position and the
+  // carousel only glides to it. Arrow keys then ask via onRequestIndex instead of
+  // moving on their own, and wheel input is left to the page.
+  index,
+  onRequestIndex,
+  draggable = true,
+  // Real links over the cards: getHref(item, i) -> href. linkAs lets a router's
+  // link component (e.g. next/link) render them.
+  getHref,
+  linkAs: LinkAs = 'a',
   onChange,
   onSelect,
+  ariaLabel = 'Image carousel',
   className = '',
   style
 }) => {
@@ -289,7 +300,10 @@ const FlexCarousel = ({
   const settingsRef = useRef(null);
   const itemsRef = useRef(items);
   const engineRef = useRef(null);
-  const callbacksRef = useRef({ onChange, onSelect });
+  const linkRefs = useRef([]);
+  // Time of the last drag release, so the click that follows it is not a navigation.
+  const dragEndRef = useRef(-Infinity);
+  const callbacksRef = useRef({ onChange, onSelect, onRequestIndex });
   const [active, setActive] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [focusOpen, setFocusOpen] = useState(false);
@@ -299,11 +313,18 @@ const FlexCarousel = ({
 
   const list = items && items.length ? items : DEFAULT_ITEMS;
   const itemsKey = list.map(item => item.src).join('|');
+  const controlled = typeof index === 'number' && Number.isFinite(index);
+  const hrefs = getHref ? list.map((item, i) => getHref(item, i) || null) : null;
+  const linked = Boolean(hrefs?.some(Boolean));
 
   useEffect(() => {
     itemsRef.current = list;
-    callbacksRef.current = { onChange, onSelect };
+    callbacksRef.current = { onChange, onSelect, onRequestIndex };
     settingsRef.current = {
+      controlled,
+      index: controlled ? index : 0,
+      draggable,
+      linked,
       intro,
       cardHeight,
       gap,
@@ -331,6 +352,14 @@ const FlexCarousel = ({
   useEffect(() => {
     engineRef.current?.setItems(itemsRef.current);
   }, [itemsKey]);
+
+  // Keyboard focus rides along with the centred card, so arrowing through the
+  // row never leaves focus on a link that has slid out of view.
+  useEffect(() => {
+    const links = linkRefs.current;
+    const focused = links.indexOf(document.activeElement);
+    if (focused >= 0 && focused !== active) links[active]?.focus({ preventScroll: true });
+  }, [active]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -459,6 +488,11 @@ const FlexCarousel = ({
     const introState = { kind: 'none', t: 0, running: false, done: false, readyAt: 0 };
     const focus = { index: -1, pending: -1, t: 0, v: 0, target: 0 };
     let instances = [];
+    // Controlled mode: the index the spring is currently heading for (-1 = not yet
+    // placed, so the first placement lands without a fly-in).
+    let appliedIndex = -1;
+    // Last geometry written to each link overlay, to skip identical style writes.
+    let linkKeys = [];
 
     const loadSlot = (item, index) => {
       const texture = new Texture(gl, {
@@ -530,6 +564,8 @@ const FlexCarousel = ({
       slots.forEach(slot => slot.dispose());
       slots = next.map(loadSlot);
       activeIndex = -1;
+      appliedIndex = -1;
+      linkKeys = [];
       layout = null;
       resnap = true;
       focus.target = 0;
@@ -691,6 +727,37 @@ const FlexCarousel = ({
       }
     };
 
+    // Lay each link over the card it opens. Cards near the wrap seam can be drawn
+    // twice, so the copy nearest the centre gets the link; cards not drawn this
+    // frame hide theirs, which also takes them out of the tab order. Links follow
+    // the cards through the intro too (a press skips it), so a poster that is on
+    // screen is always clickable.
+    const placeLinks = () => {
+      const links = linkRefs.current;
+      const best = [];
+      for (const inst of instances) {
+        const offset = Math.abs((inst.x0 + inst.x1) / 2 - width / 2);
+        if (!best[inst.index] || offset < best[inst.index].offset) best[inst.index] = { ...inst, offset };
+      }
+      for (let i = 0; i < links.length; i++) {
+        const link = links[i];
+        if (!link) continue;
+        // Before the intro starts the scene is drawn at zero alpha — nothing to click.
+        const box = introState.running || introState.done ? best[i] : null;
+        const key = box ? `${box.x0}|${box.y0}|${box.x1}|${box.y1}` : '';
+        if (linkKeys[i]?.link === link && linkKeys[i].key === key) continue;
+        linkKeys[i] = { link, key };
+        if (!box) {
+          link.style.visibility = 'hidden';
+          continue;
+        }
+        link.style.visibility = 'visible';
+        link.style.transform = `translate3d(${box.x0}px, ${box.y0}px, 0)`;
+        link.style.width = `${box.x1 - box.x0}px`;
+        link.style.height = `${box.y1 - box.y0}px`;
+      }
+    };
+
     const resize = () => {
       width = Math.max(1, container.clientWidth);
       height = Math.max(1, container.clientHeight);
@@ -729,6 +796,26 @@ const FlexCarousel = ({
         animating = true;
       }
       layout = m;
+
+      if (s.controlled) {
+        const want = Math.max(0, Math.min(n - 1, Math.round(s.index)));
+        if (want !== appliedIndex) {
+          // Head straight for the card within the current lap instead of taking
+          // the shortest wrapped path: a controlled position maps to one place in
+          // the row, so last-to-first has to run back through it, not loop past
+          // the end.
+          const from = nearest(m, goal);
+          const lap = Math.round((goal - m.centers[from]) / m.loop);
+          goal = lap * m.loop + m.centers[want];
+          if (appliedIndex < 0) {
+            pos = goal;
+            vel = 0;
+          }
+          mode = 'spring';
+          appliedIndex = want;
+          animating = true;
+        }
+      }
 
       if (!introState.running && !introState.done) {
         const allSettled = slots.every(slot => slot.loaded || slot.failed);
@@ -963,6 +1050,8 @@ const FlexCarousel = ({
         lensUniforms.uStrength.value = effects.strength * (1 - focusEase);
         lensUniforms.uSceneAlpha.value = effects.sceneAlpha;
         renderer.render({ scene: lensMesh });
+
+        if (s.linked) placeLinks();
       }
 
       let nextHover = '';
@@ -1030,7 +1119,7 @@ const FlexCarousel = ({
             pointer.down = false;
             return;
           }
-          if (Math.abs(dx) > slop) {
+          if (Math.abs(dx) > slop && settingsRef.current?.draggable !== false) {
             pointer.dragging = true;
             pointer.startX = x;
             pointer.startPos = pos;
@@ -1066,6 +1155,7 @@ const FlexCarousel = ({
       interactedAt = performance.now();
       if (pointer.dragging) {
         pointer.dragging = false;
+        dragEndRef.current = performance.now();
         const now = performance.now();
         const first = pointer.samples[0];
         const lastSample = pointer.samples[pointer.samples.length - 1];
@@ -1085,6 +1175,8 @@ const FlexCarousel = ({
       const [x, y] = localPoint(e);
       const hit = instances.find(inst => x >= inst.x0 && x <= inst.x1 && y >= inst.y0 && y <= inst.y1);
       if (!hit) return;
+      // A linked card is opened by its own link's click.
+      if (linkRefs.current[hit.index]) return;
       if (hit.index === activeIndex && Math.abs(goal - pos) < 2) {
         callbacksRef.current.onSelect?.(hit.index, itemsRef.current[hit.index]);
         if (s.focusOnClick) openFocus(hit.index);
@@ -1116,7 +1208,8 @@ const FlexCarousel = ({
 
     const onWheel = e => {
       const s = settingsRef.current;
-      if (!s || e.ctrlKey) return;
+      // Controlled: the parent decides the position, so the wheel stays the page's.
+      if (!s || s.controlled || e.ctrlKey) return;
       let dx = e.deltaX;
       let dy = e.deltaY;
       if (e.shiftKey && Math.abs(dx) < Math.abs(dy)) {
@@ -1140,6 +1233,29 @@ const FlexCarousel = ({
     const onKeyDown = e => {
       const s = settingsRef.current;
       if (!s) return;
+      if (s.controlled) {
+        // Ask the owner to move instead. At either end the key is left alone, so
+        // ArrowDown past the last card still scrolls the page on.
+        const last = slots.length - 1;
+        const from = Math.max(0, appliedIndex);
+        const next =
+          e.key === 'ArrowRight' || e.key === 'ArrowDown'
+            ? Math.min(last, from + 1)
+            : e.key === 'ArrowLeft' || e.key === 'ArrowUp'
+              ? Math.max(0, from - 1)
+              : e.key === 'Home'
+                ? 0
+                : e.key === 'End'
+                  ? last
+                  : null;
+        if (next !== null) {
+          if (next !== from) {
+            e.preventDefault();
+            callbacksRef.current.onRequestIndex?.(next);
+          }
+          return;
+        }
+      }
       const m = metrics(s);
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         e.preventDefault();
@@ -1164,8 +1280,15 @@ const FlexCarousel = ({
       } else if (e.key === 'Escape') {
         if (closeFocus()) e.preventDefault();
       } else if (e.key === 'Enter' || e.key === ' ') {
+        // A focused link activates itself; only the bare container needs help.
+        if (e.target !== container) return;
         e.preventDefault();
         if (closeFocus() || activeIndex < 0) return;
+        const link = linkRefs.current[activeIndex];
+        if (link) {
+          link.click();
+          return;
+        }
         callbacksRef.current.onSelect?.(activeIndex, itemsRef.current[activeIndex]);
         if (s.focusOnClick) openFocus(activeIndex);
       }
@@ -1245,9 +1368,34 @@ const FlexCarousel = ({
       style={{ ...style, '--flex-carousel-half': `${Math.min(Math.max(cardHeight, 0.05), 1) * 50}%` }}
       role="region"
       aria-roledescription="carousel"
-      aria-label="Image carousel"
-      tabIndex={0}
+      aria-label={ariaLabel}
+      // With links, the centred card's link is the tab stop instead.
+      tabIndex={linked ? -1 : 0}
+      data-static={draggable ? undefined : ''}
     >
+      {linked && (
+        <div className="flex-carousel__links">
+          {list.map((item, i) =>
+            hrefs[i] ? (
+              <LinkAs
+                key={`${i}:${hrefs[i]}`}
+                href={hrefs[i]}
+                ref={el => {
+                  linkRefs.current[i] = el;
+                }}
+                className="flex-carousel__link"
+                aria-label={item.title ? `${item.title}${item.subtitle ? ` (${item.subtitle})` : ''}` : item.alt}
+                // Roving tab stop: only the centred card is in the tab order.
+                tabIndex={i === active ? 0 : -1}
+                draggable={false}
+                onClick={event => {
+                  if (performance.now() - dragEndRef.current < 350) event.preventDefault();
+                }}
+              />
+            ) : null
+          )}
+        </div>
+      )}
       {captions && current && revealed && (
         <div className="flex-carousel__caption" aria-hidden="true">
           <span key={active} className="flex-carousel__title">
